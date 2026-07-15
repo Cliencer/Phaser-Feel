@@ -1,0 +1,45 @@
+{
+  "name": "phaser-feel",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Game-feel feedback orchestration for Phaser 4",
+  "license": "GPL-3.0-or-later",
+  "author": "Cliencer",
+  "type": "module",
+  "sideEffects": false,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=10 <11"
+  },
+  "unpkg": "./dist/phaser-feel.global.js",
+  "jsdelivr": "./dist/phaser-feel.global.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./feedbacks": {
+      "types": "./dist/feedbacks.d.ts",
+      "import": "./dist/feedbacks.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "phaser": ">=4.0.0 <5"
+  },
+  "devDependencies": {
+    "phaser": "4.1.0",
+    "tsup": "8.5.0",
+    "typescript": "6.0.2"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "ci": "pnpm typecheck && pnpm build"
+  }
+}
