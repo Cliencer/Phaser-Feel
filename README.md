@@ -4,6 +4,10 @@ Phaser-Feel is a GPL-3.0-or-later deterministic game-feel feedback orchestration
 
 This public repository is the buildable runtime-source mirror. The package is under active development and has not been published to npm.
 
+## Documentation
+
+Read the [bilingual API documentation and try the interactive demos](https://cliencer.github.io/Phaser-Feel/).
+
 ## Requirements
 
 - Node.js 24
