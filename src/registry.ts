@@ -5,6 +5,7 @@ import {FeelPlayer, type Feedback, type FeelContext, type FeelPlayerEntry, type 
 import type {FeedbackSchema, InferSchema, SchemaShape} from './schema.js';
 import {parseTargetSelector, type TargetSelector} from './target-resolver.js';
 import {TimeFreezeFeedback, timeFreezeSchema} from './time-freeze.js';
+import {TimeHitStopFeedback, TimeScaleFeedback, timeHitStopSchema, timeScaleSchema} from './time-scale.js';
 
 /** Serializable boundary accepted by {@link FeedbackRegistry}. */
 export interface FeedbackConfig {
@@ -83,6 +84,8 @@ export function createDefaultFeedbackRegistry(): FeedbackRegistry {
   registry.register(objectPropertySchema, params => new ObjectPropertyFeedback(params));
   registry.register(uiTransformSchema, params => new UiTransformFeedback(params));
   registry.register(timeFreezeSchema, params => new TimeFreezeFeedback(params));
+  registry.register(timeScaleSchema, params => new TimeScaleFeedback(params));
+  registry.register(timeHitStopSchema, params => new TimeHitStopFeedback(params));
   return registry;
 }
 

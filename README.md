@@ -31,6 +31,6 @@ The ESM entry points and declarations are emitted to `dist/`; an IIFE browser bu
 - Phaser 4 RuntimeAdapter boundaries;
 - camera shake and event emission;
 - safe target resolution and property Tween feedbacks;
-- composable TimeDomains and `time.freeze`.
+- composable TimeDomains with `time.freeze`, `time.scale`, and `time.hitStop`.
 
 Copyright 2026 Cliencer.

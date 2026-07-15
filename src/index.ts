@@ -17,3 +17,4 @@ export * from './property-adapter.js';
 export * from './property-feedback.js';
 export * from './time-domain.js';
 export * from './time-freeze.js';
+export * from './time-scale.js';

@@ -38,15 +38,25 @@ interface PhaserSceneLike {
   tweens?: PhaserTweenManagerLike;
   children?: {readonly list?: readonly unknown[]; getByName?(name: string): unknown};
   cameras?: {readonly main?: unknown; readonly cameras?: readonly {readonly id?: number}[]};
-  scene?: {get?(key: string): unknown; pause?(): unknown; resume?(): unknown};
+  scene?: {get?(key: string): unknown; isPaused?(): boolean; pause?(): unknown; resume?(): unknown};
   time?: {timeScale: number; paused: boolean};
 }
 
 type ControllableSceneLike = PhaserSceneLike;
 
+interface TimeDomainBinding {
+  readonly timeScale: number;
+  readonly timePaused: boolean;
+  readonly tweenScale: number;
+  readonly tweenPaused: boolean;
+  readonly managerPaused: boolean;
+  appliedManagerPaused: boolean;
+}
+
 /** Structural Phaser 4 adapter kept behind the core runtime boundary. */
 export class PhaserRuntimeAdapter implements RuntimeAdapter {
   #domainPaused = new WeakMap<object, boolean>();
+  #timeBindings = new WeakMap<object, TimeDomainBinding>();
   constructor(
     readonly phaserVersion = '4',
     readonly reducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
@@ -124,29 +134,48 @@ export class PhaserRuntimeAdapter implements RuntimeAdapter {
   syncTimeDomain(request: TimeDomainSyncRequest): 'completed' | 'unsupported' {
     if (request.state.name !== 'scene' || !isSceneLike(request.scene)) return 'unsupported';
     const scene = request.scene;
+    const binding = this.#timeBindings.get(scene);
     let synchronized = false;
     if (scene.time) {
-      scene.time.timeScale = request.state.scale;
-      scene.time.paused = request.state.paused;
+      scene.time.timeScale = (binding?.timeScale ?? 1) * request.state.scale;
+      scene.time.paused = (binding?.timePaused ?? false) || request.state.paused;
       synchronized = true;
     }
     if (scene.tweens) {
-      scene.tweens.timeScale = request.state.scale;
-      scene.tweens.paused = request.state.paused;
+      scene.tweens.timeScale = (binding?.tweenScale ?? 1) * request.state.scale;
+      scene.tweens.paused = (binding?.tweenPaused ?? false) || request.state.paused;
       synchronized = true;
     }
-    const previousPaused = this.#domainPaused.get(scene);
-    if (previousPaused !== request.state.paused) {
-      if (request.state.paused) scene.scene?.pause?.();
-      else if (previousPaused === true) scene.scene?.resume?.();
-      this.#domainPaused.set(scene, request.state.paused);
+    if (binding) {
+      const desiredPaused = binding.managerPaused || request.state.paused;
+      if (desiredPaused !== binding.appliedManagerPaused) {
+        if (desiredPaused) scene.scene?.pause?.();
+        else scene.scene?.resume?.();
+        binding.appliedManagerPaused = desiredPaused;
+      }
+    } else {
+      const previousPaused = this.#domainPaused.get(scene);
+      if (previousPaused !== request.state.paused) {
+        if (request.state.paused) scene.scene?.pause?.();
+        else if (previousPaused === true) scene.scene?.resume?.();
+        this.#domainPaused.set(scene, request.state.paused);
+      }
     }
     return synchronized || scene.scene?.pause !== undefined ? 'completed' : 'unsupported';
   }
 
   /** Creates built-in domains bound to one Phaser Scene lifecycle. */
   createTimeDomains(scene: ControllableSceneLike): TimeDomainRegistry {
-    const initialScale = scene.time?.timeScale ?? scene.tweens?.timeScale ?? 1;
+    const managerPaused = scene.scene?.isPaused?.() ?? false;
+    const binding: TimeDomainBinding = {
+      timeScale: scene.time?.timeScale ?? 1,
+      timePaused: scene.time?.paused ?? false,
+      tweenScale: scene.tweens?.timeScale ?? 1,
+      tweenPaused: scene.tweens?.paused ?? false,
+      managerPaused,
+      appliedManagerPaused: managerPaused,
+    };
+    this.#timeBindings.set(scene, binding);
     let registry!: TimeDomainRegistry;
     let bound = true;
     const dispose = (): void => registry.dispose();
@@ -156,11 +185,11 @@ export class PhaserRuntimeAdapter implements RuntimeAdapter {
       scene.events?.off?.('shutdown', dispose);
       scene.events?.off?.('destroy', dispose);
       this.#domainPaused.delete(scene);
+      this.#timeBindings.delete(scene);
     };
     registry = new TimeDomainRegistry({
       sync: state => { if (state.name === 'scene') this.syncTimeDomain({scene, state}); },
       onDispose: unbind,
-      initial: {scene: {scale: initialScale}},
     });
     scene.events?.once('shutdown', dispose);
     scene.events?.once('destroy', dispose);
